@@ -1,8 +1,12 @@
 import { Button, Dialog, DialogActions, DialogContent, DialogTitle, Grid, TextField } from '@mui/material'
-import { Dispatch, SetStateAction } from 'react'
+import { Dispatch, SetStateAction, useCallback } from 'react'
 import { Project } from '../../../types/project_types'
 
+import dagre from 'dagre'
+import { Edge, Node, Position } from 'reactflow'
 import 'reactflow/dist/style.css'
+import { ProjectNodeData } from '../../../components/ProjectNode/ProjectNode'
+import { getShadowCardDOMRect } from '../../../utils/func/project'
 import NodeDialog from './NodeDialog'
 import ProjectDefinitionFlow from './ProjectDefinitionFlow'
 import { useProjectDialogState } from './useProjectDialogState'
@@ -12,6 +16,62 @@ export type ProjectDialogProps = {
     setDialogData: Dispatch<SetStateAction<Project | undefined>>
     onConfirm: (dialogData: Project) => void
 }
+
+const getLayoutedElements = (
+    nodes: Node<ProjectNodeData>[],
+    edges: Edge<any>[],
+    direction: 'LR' | 'TB' = 'TB',
+    dagreGraph: dagre.graphlib.Graph<Record<string, never>>,
+) => {
+    const isHorizontal = direction === 'LR'
+    dagreGraph.setGraph({ rankdir: direction })
+
+    nodes.forEach((node) => {
+        const shadowCard = getShadowCardDOMRect({
+            description: node.data.description,
+            expertiseAreas: node.data.expertiseAreas,
+            name: node.data.name,
+            id: node.id,
+            x: node.position.x,
+            y: node.position.y,
+        })
+        dagreGraph.setNode(node.id, { width: shadowCard?.width || 50, height: shadowCard?.height || 50 })
+    })
+
+    edges.forEach((edge) => {
+        dagreGraph.setEdge(edge.source, edge.target)
+    })
+
+    dagre.layout(dagreGraph)
+
+    nodes.forEach((node) => {
+        const nodeWithPosition = dagreGraph.node(node.id)
+        node.targetPosition = isHorizontal ? Position.Left : Position.Top
+        node.sourcePosition = isHorizontal ? Position.Right : Position.Bottom
+
+        const shadowCard = getShadowCardDOMRect({
+            description: node.data.description,
+            expertiseAreas: node.data.expertiseAreas,
+            name: node.data.name,
+            id: node.id,
+            x: node.position.x,
+            y: node.position.y,
+        })
+
+        // We are shifting the dagre node position (anchor=center center) to the top left
+        // so it matches the React Flow node anchor point (top left).
+        node.position = {
+            x: nodeWithPosition.x - (shadowCard?.width || 50) / 2,
+            y: nodeWithPosition.y - (shadowCard?.height || 50) / 2,
+        }
+
+        return node
+    })
+
+    return { nodes, edges }
+}
+
+const dagreGraph = new dagre.graphlib.Graph()
 
 const ProjectDialog = (props: ProjectDialogProps) => {
     const { dialogData, setDialogData, onConfirm } = props
@@ -31,11 +91,38 @@ const ProjectDialog = (props: ProjectDialogProps) => {
             disableNodeDialogSaveButton,
             saveNodeDialogHandler,
         },
-        reactFlow: { edges, nodes, onConnect, onEdgesChange, onNodesChange, onMouseDoubleClick },
+        reactFlow: {
+            edges,
+            setEdges,
+            nodes,
+            setNodes,
+            onConnect,
+            onEdgesChange,
+            onNodesChange,
+            onMouseDoubleClick,
+            createArea,
+        },
     } = useProjectDialogState({
         dialogData,
         setDialogData,
     })
+
+    dagreGraph.setDefaultEdgeLabel(() => ({}))
+
+    const onLayout = useCallback(
+        (direction: 'LR' | 'TB') => {
+            const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
+                nodes,
+                edges,
+                direction,
+                dagreGraph,
+            )
+
+            setNodes([...layoutedNodes])
+            setEdges([...layoutedEdges])
+        },
+        [nodes, edges, setNodes, setEdges],
+    )
 
     return (
         <>
@@ -87,6 +174,8 @@ const ProjectDialog = (props: ProjectDialogProps) => {
                                 onEdgesChange={onEdgesChange}
                                 onNodeDoubleClick={onMouseDoubleClick}
                                 onNodesChange={onNodesChange}
+                                onLayout={onLayout}
+                                onBrushEnd={createArea}
                             />
                         )}
                     </Grid>

@@ -6,6 +6,8 @@ import { ProjectsProvider } from './context/ProjectContext.tsx'
 import { UsersProvider } from './context/UserContext.tsx'
 import './index.css'
 import Home from './pages/Home/Home.tsx'
+import Planning from './pages/Planning/Planning.tsx'
+import Project from './pages/Projects/Project.tsx'
 import ProjectsList from './pages/Projects/Projects.tsx'
 import UsersList from './pages/Users/Users.tsx'
 import theme from './theme.ts'
@@ -22,6 +24,14 @@ const router = createBrowserRouter([
     {
         path: '/projects',
         Component: ProjectsList,
+    },
+    {
+        path: '/planning',
+        Component: Planning,
+    },
+    {
+        path: '/projects/:projectID',
+        Component: Project,
     },
 ])
 

@@ -1,8 +1,8 @@
-import { isEqual } from 'lodash'
+import { isEqual, uniqueId } from 'lodash'
 import { ChangeEvent, Dispatch, SetStateAction, useCallback, useEffect, useState } from 'react'
 import { Connection, Edge, Node, NodeMouseHandler, addEdge, useEdgesState, useNodesState, useStoreApi } from 'reactflow'
 import { ProjectNodeData } from '../../../components/ProjectNode/ProjectNode'
-import { Project, ProjectNodeType } from '../../../types/project_types'
+import { Project, ProjectNodeLink, ProjectNodeType } from '../../../types/project_types'
 import { getShadowCardDOMRect } from '../../../utils/func/project'
 
 export interface UseProjectDialogStateParams {
@@ -13,8 +13,7 @@ export interface UseProjectDialogStateParams {
 export const useProjectDialogState = (params: UseProjectDialogStateParams) => {
     const { dialogData, setDialogData } = params
 
-    /* MAIN DIALOG DATA */
-
+    /* #region Main Dialog Data */
     const handleCreateNodeClick = () => {
         setNodeDialogData({
             id: '',
@@ -34,31 +33,32 @@ export const useProjectDialogState = (params: UseProjectDialogStateParams) => {
     }
 
     const updateNameHandler = (e: ChangeEvent<HTMLInputElement>) => {
-        setNodeDialogData((node) => {
-            if (node) {
+        setDialogData((dialog) => {
+            if (dialog) {
                 return {
-                    ...node,
+                    ...dialog,
                     name: e.target.value,
                 }
             }
-            return node
+            return dialog
         })
     }
 
     const updateDescriptionHandler = (e: ChangeEvent<HTMLInputElement>) => {
-        setNodeDialogData((node) => {
-            if (node) {
+        setDialogData((dialog) => {
+            if (dialog) {
                 return {
-                    ...node,
+                    ...dialog,
                     description: e.target.value,
                 }
             }
-            return node
+            return dialog
         })
     }
 
-    /* NODE DIALOG DATA */
+    /* #endregion */
 
+    /* #region Node Dialog Data */
     const [nodeDialogData, setNodeDialogData] = useState<ProjectNodeType | undefined>(undefined)
 
     const closeNodeDialogHandler = () => setNodeDialogData(undefined)
@@ -164,10 +164,10 @@ export const useProjectDialogState = (params: UseProjectDialogStateParams) => {
         nodeDialogData.name === '' ||
         nodeDialogData.description === '' ||
         Object.values(nodeDialogData.expertiseAreas).every((value) => !value)
+    /* #endregion */
 
-    /* REACT FLOW */
-
-    const [nodes, setNodes, onNodesChange] = useNodesState<ProjectNodeData | {}>(
+    /* #region React Flow */
+    const [nodes, setNodes, onNodesChange] = useNodesState<ProjectNodeData | any>(
         dialogData.nodes.map((node) => ({
             type: 'projectNode',
             id: node.id,
@@ -184,7 +184,9 @@ export const useProjectDialogState = (params: UseProjectDialogStateParams) => {
         })),
     )
 
-    const [edges, setEdges, onEdgesChange] = useEdgesState(dialogData.links)
+    console.log(nodes.findIndex((node) => node.id === 'area'))
+
+    const [edges, setEdges, onEdgesChange] = useEdgesState<ProjectNodeLink>(dialogData.links)
 
     const onConnect = useCallback((params: Edge | Connection) => setEdges((eds) => addEdge(params, eds)), [setEdges])
 
@@ -192,8 +194,45 @@ export const useProjectDialogState = (params: UseProjectDialogStateParams) => {
         setNodeDialogData(dialogData.nodes.find((n) => n.id === node.id))
     }
 
-    /* CONSISTENCY CHECKS */
+    const createArea = (allNodes: Node<ProjectNodeData>[]) => {
+        const nodes = allNodes.filter((n) => n.type === 'projectNode')
+        if (nodes.length === 0) {
+            return
+        }
+        console.log(nodes)
+        const minX = Math.min(...nodes.map((node) => node.position.x))
+        const minY = Math.min(...nodes.map((node) => node.position.y))
+        const maxX = Math.max(...nodes.map((node) => node.position.x + (node.width ?? 0)))
+        const maxY = Math.max(...nodes.map((node) => node.position.y + (node.height ?? 0)))
 
+        const width = maxX - minX
+        const height = maxY - minY
+
+        setNodes((nodes) => {
+            const newNodes = [
+                {
+                    id: uniqueId('area'),
+                    position: {
+                        x: minX - 100,
+                        y: minY - 100,
+                    },
+                    data: {},
+                    style: {
+                        backgroundColor: 'transparent',
+                        width: width + 200,
+                        height: height + 200,
+                    },
+                    draggable: false,
+                } as Node<any>,
+                ...nodes,
+            ]
+
+            return newNodes
+        })
+    }
+    /* #endregion */
+
+    /* #region Consistency Checks */
     useEffect(() => {
         const currentDialogNodes: Node<ProjectNodeData>[] = dialogData.nodes.map((node) => ({
             id: node.id,
@@ -241,6 +280,7 @@ export const useProjectDialogState = (params: UseProjectDialogStateParams) => {
         if (removedNodes.length > 0) {
             setNodes((newNodes) => newNodes.filter((node) => !removedNodes.some((n) => n.id === node.id)))
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dialogData.nodes])
 
     useEffect(() => {
@@ -263,12 +303,14 @@ export const useProjectDialogState = (params: UseProjectDialogStateParams) => {
                 return newDialogData
             })
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [nodes])
 
     useEffect(() => {
         if (!isEqual(edges, dialogData.links)) {
             setEdges(dialogData.links)
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dialogData.links])
 
     useEffect(() => {
@@ -283,7 +325,9 @@ export const useProjectDialogState = (params: UseProjectDialogStateParams) => {
                 return newDialogData
             })
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [edges])
+    /* #endregion */
 
     return {
         data: {
@@ -305,8 +349,11 @@ export const useProjectDialogState = (params: UseProjectDialogStateParams) => {
             onNodesChange,
             onEdgesChange,
             nodes,
+            setNodes,
             edges,
+            setEdges,
             onMouseDoubleClick,
+            createArea,
         },
     }
 }

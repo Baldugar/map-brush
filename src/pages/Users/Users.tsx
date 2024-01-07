@@ -27,7 +27,7 @@ const UsersList = () => {
     const navigate = useNavigate()
 
     useEffect(() => {
-        if (openDialog && userContext && !dialogData) {
+        if (openDialog && !dialogData) {
             setDialogData({
                 expertiseAreas: {
                     backend: false,
@@ -43,7 +43,7 @@ const UsersList = () => {
         } else if (!openDialog && dialogData) {
             setDialogData(undefined)
         }
-    }, [openDialog])
+    }, [dialogData, openDialog])
 
     if (!userContext) {
         throw new Error('You probably forgot to put <UsersProvider>.')

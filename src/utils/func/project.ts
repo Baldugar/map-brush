@@ -12,7 +12,7 @@ export const getShadowCardDOMRect = (nodeDialogData: ProjectNodeType) => {
     card.style.position = 'absolute'
     card.style.zIndex = '2000'
     card.innerHTML = `
-        <div class="MuiBox-root css-mmtbfz">
+        <div class="MuiBox-root" style="width: fit-content; max-width: 800px">
             <div id="toRender" class="
                 MuiPaper-root 
                 MuiPaper-elevation 
@@ -93,7 +93,7 @@ export const getShadowCardDOMRect = (nodeDialogData: ProjectNodeType) => {
     document.body.appendChild(card)
     const toRender = document.getElementById('toRender')
     const cardSize = toRender?.getBoundingClientRect()
-    console.log('cardSize', cardSize)
+    console.log('cardSize', cardSize, nodeDialogData.name)
     document.body.removeChild(card)
     return cardSize
 }

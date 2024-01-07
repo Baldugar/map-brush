@@ -31,8 +31,8 @@ const ProjectNode = (props: NodeProps<ProjectNodeData>) => {
                     </Grid>
                 </CardContent>
             </Card>
-            <Handle id={'bottom'} position={Position.Bottom} type={'target'} isConnectableEnd isConnectableStart />
-            <Handle id={'right'} position={Position.Right} type={'target'} isConnectableEnd isConnectableStart />
+            <Handle id={'bottom'} position={Position.Bottom} type={'source'} isConnectableEnd isConnectableStart />
+            <Handle id={'right'} position={Position.Right} type={'source'} isConnectableEnd isConnectableStart />
         </Box>
     )
 }

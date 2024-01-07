@@ -1,4 +1,5 @@
 import { Box, Grid } from '@mui/material'
+import { MouseEventHandler, useState } from 'react'
 import ReactFlow, {
     Background,
     BackgroundVariant,
@@ -11,16 +12,22 @@ import ReactFlow, {
     OnConnect,
     OnEdgesChange,
     OnNodesChange,
+    OnSelectionChangeFunc,
+    Panel,
+    SelectionMode,
 } from 'reactflow'
-import ProjectNode from '../../../components/ProjectNode/ProjectNode'
+import ProjectNode, { ProjectNodeData } from '../../../components/ProjectNode/ProjectNode'
+import { ProjectNodeLink } from '../../../types/project_types'
 
 export interface ProjectDefinitionFlowProps {
-    nodes: Node<any>[]
-    edges: Edge<any>[]
+    nodes: Node<ProjectNodeData>[]
+    edges: Edge<ProjectNodeLink>[]
     onNodesChange: OnNodesChange
     onConnect: OnConnect
     onEdgesChange: OnEdgesChange
     onNodeDoubleClick: NodeMouseHandler
+    onLayout: (layout: 'LR' | 'TB') => void
+    onBrushEnd: (nodes: Node<ProjectNodeData>[]) => void
 }
 
 const nodeTypes: NodeTypes = {
@@ -28,7 +35,23 @@ const nodeTypes: NodeTypes = {
 }
 
 const ProjectDefinitionFlow = (props: ProjectDefinitionFlowProps) => {
-    const { nodes, edges, onNodesChange, onConnect, onEdgesChange, onNodeDoubleClick } = props
+    const { nodes, edges, onNodesChange, onConnect, onEdgesChange, onNodeDoubleClick, onLayout, onBrushEnd } = props
+    const [selectedNodes, setSelectedNodes] = useState<Node<ProjectNodeData>[]>([])
+
+    const onSelectionChange: OnSelectionChangeFunc = ({ nodes }) => {
+        setSelectedNodes(nodes)
+    }
+    const onSelectionEnd: (event: React.MouseEvent<Element, MouseEvent>) => void = (event) => {
+        event.stopPropagation()
+        event.preventDefault()
+        onBrushEnd(selectedNodes)
+    }
+
+    const onLayoutHandler: MouseEventHandler<HTMLButtonElement> = (e) => {
+        const layout = e.currentTarget.id as 'LR' | 'TB'
+        onLayout(layout)
+    }
+
     return (
         <Grid item xs position={'relative'}>
             <Box
@@ -56,6 +79,9 @@ const ProjectDefinitionFlow = (props: ProjectDefinitionFlowProps) => {
                 onEdgesChange={onEdgesChange}
                 connectionMode={ConnectionMode.Loose}
                 onConnect={onConnect}
+                onSelectionChange={onSelectionChange}
+                onSelectionEnd={onSelectionEnd}
+                selectionMode={SelectionMode.Full}
                 fitView={true}
                 fitViewOptions={{
                     padding: 1,
@@ -68,6 +94,14 @@ const ProjectDefinitionFlow = (props: ProjectDefinitionFlowProps) => {
                     hideAttribution: true,
                 }}
             >
+                <Panel position="top-right">
+                    <button id={'TB'} onClick={onLayoutHandler}>
+                        vertical layout
+                    </button>
+                    <button id={'LR'} onClick={onLayoutHandler}>
+                        horizontal layout
+                    </button>
+                </Panel>
                 <Controls
                     fitViewOptions={{
                         padding: 1,

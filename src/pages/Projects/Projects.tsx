@@ -1,10 +1,11 @@
-import { ChevronLeft, Edit, RemoveOutlined } from '@mui/icons-material'
-import { Button, Card, CardHeader, Container, Grid, IconButton, Typography } from '@mui/material'
+import { ChevronLeft } from '@mui/icons-material'
+import { Button, Container, Grid, IconButton, Typography } from '@mui/material'
 import { useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ReactFlowProvider } from 'reactflow'
 import { ProjectsContext } from '../../context/ProjectContext'
 import { Project } from '../../types/project_types'
+import ProjectCard from './Components/ProjectCard'
 import ProjectDialog from './Components/ProjectDialog'
 
 const ProjectsList = () => {
@@ -79,39 +80,6 @@ const ProjectsList = () => {
                 </ReactFlowProvider>
             )}
         </Container>
-    )
-}
-
-const ProjectCard = ({
-    project,
-    onEditClick,
-    onDeleteClick,
-}: {
-    project: Project
-    onEditClick: () => void
-    onDeleteClick: () => void
-}) => {
-    return (
-        <Card>
-            <CardHeader
-                title={project.name}
-                subheader={project.description}
-                action={
-                    <Grid container spacing={2}>
-                        <Grid item xs>
-                            <IconButton onClick={onEditClick}>
-                                <Edit />
-                            </IconButton>
-                        </Grid>
-                        <Grid item xs>
-                            <IconButton onClick={onDeleteClick}>
-                                <RemoveOutlined />
-                            </IconButton>
-                        </Grid>
-                    </Grid>
-                }
-            />
-        </Card>
     )
 }
 
